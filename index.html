@@ -155,44 +155,24 @@
     window.sortOrder = 'asc'; 
     window.currentSortField = 'name';
 
-    window.loadProducts = function() {
-      const xhr = new XMLHttpRequest();
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-          try {
-            window.products = JSON.parse(xhr.responseText);
-            window.renderTable();
-          } catch (e) {
-            console.error('Error parsing products:', e);
-          }
-        }
-      };
-      xhr.onerror = function() {
-        console.error('Error loading products.json');
-      };
-      xhr.open('GET', 'products.json');
-      xhr.send();
-    };
-
     window.renderTable = function() {
       const tbody = document.getElementById('product-tbody');
-      
       if (!tbody) return;
       
-      if (window.products.length === 0) {
+      if (!window.products || window.products.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5">Không có sản phẩm nào</td></tr>';
         return;
       }
 
       let html = '';
       window.products.forEach((product, index) => {
-        html += `<tr>
-          <td>${index + 1}</td>
-          <td>${product.name}</td>
-          <td>${product.category || 'N/A'}</td>
-          <td>${product.price}</td>
-          <td>${product.quantity}</td>
-        </tr>`;
+        html += '<tr>';
+        html += '<td>' + (index + 1) + '</td>';
+        html += '<td>' + product.name + '</td>';
+        html += '<td>' + (product.category || 'N/A') + '</td>';
+        html += '<td>' + product.price + '</td>';
+        html += '<td>' + product.quantity + '</td>';
+        html += '</tr>';
       });
       
       tbody.innerHTML = html;
@@ -206,7 +186,7 @@
         window.sortOrder = window.sortOrder === 'asc' ? 'desc' : 'asc';
       }
 
-      window.products.sort((a, b) => {
+      window.products.sort(function(a, b) {
         let aVal = a[field];
         let bVal = b[field];
 
@@ -227,18 +207,20 @@
     };
 
     window.updateSortIndicator = function() {
-      const headers = document.querySelectorAll('#product-table th');
-      headers.forEach(header => {
-        const indicator = header.querySelector('.sort-indicator');
-        if (indicator) {
-          indicator.remove();
-        }
-      });
-
       const nameHeader = document.getElementById('name-header');
+      if (!nameHeader) return;
+      
+      const indicator = nameHeader.querySelector('.sort-indicator');
+      if (indicator) {
+        indicator.remove();
+      }
+
       if (window.currentSortField === 'name') {
         const icon = window.sortOrder === 'asc' ? '▲' : '▼';
-        nameHeader.innerHTML = `Tên sản phẩm <span class="sort-indicator">${icon}</span>`;
+        const span = document.createElement('span');
+        span.className = 'sort-indicator';
+        span.textContent = icon;
+        nameHeader.appendChild(span);
       }
     };
 
@@ -284,7 +266,7 @@
       const quantity = parseInt(document.getElementById('input-quantity').value);
 
       const newProduct = {
-        id: window.products.length > 0 ? Math.max(...window.products.map(p => p.id || 0)) + 1 : 1,
+        id: window.products.length > 0 ? Math.max.apply(null, window.products.map(function(p) { return p.id || 0; })) + 1 : 1,
         name: name,
         category: category,
         price: price,
@@ -300,45 +282,68 @@
       document.getElementById('input-quantity').value = '';
     };
 
-    window.setupEventListeners = function() {
-      const nameHeader = document.getElementById('name-header');
-      const btnAdd = document.getElementById('btn-add');
-      const inputQuantity = document.getElementById('input-quantity');
+    window.loadProducts = function() {
+      const xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          try {
+            window.products = JSON.parse(xhr.responseText);
+            window.renderTable();
+          } catch (e) {
+            console.error('Error parsing products:', e);
+          }
+        }
+      };
+      xhr.onerror = function() {
+        console.error('Error loading products.json');
+      };
+      xhr.open('GET', 'products.json');
+      xhr.send();
+    };
 
-      if (nameHeader) {
-        nameHeader.onclick = function(e) {
-          e.preventDefault();
-          window.sortProducts('name');
-        };
-      }
+    // Setup event listeners
+    (function() {
+      function setupListeners() {
+        const nameHeader = document.getElementById('name-header');
+        const btnAdd = document.getElementById('btn-add');
+        const inputQuantity = document.getElementById('input-quantity');
 
-      if (btnAdd) {
-        btnAdd.onclick = function(e) {
-          e.preventDefault();
-          window.addProduct();
-        };
-      }
+        if (nameHeader) {
+          nameHeader.onclick = function(e) {
+            e.preventDefault();
+            window.sortProducts('name');
+          };
+        }
 
-      if (inputQuantity) {
-        inputQuantity.onkeypress = function(e) {
-          if (e.key === 'Enter') {
+        if (btnAdd) {
+          btnAdd.onclick = function(e) {
             e.preventDefault();
             window.addProduct();
-          }
-        };
+          };
+        }
+
+        if (inputQuantity) {
+          inputQuantity.onkeypress = function(e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              window.addProduct();
+            }
+          };
+        }
       }
-    };
 
-    window.init = function() {
-      window.setupEventListeners();
-      window.loadProducts();
-    };
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupListeners);
+      } else {
+        setupListeners();
+      }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', window.init);
-    } else {
-      window.init();
-    }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', window.loadProducts);
+      } else {
+        window.loadProducts();
+      }
+    })();
   </script>
 </body>
 </html>
