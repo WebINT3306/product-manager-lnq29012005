@@ -159,9 +159,16 @@
       const xhr = new XMLHttpRequest();
       xhr.onreadystatechange = function() {
         if (xhr.readyState === 4 && xhr.status === 200) {
-          products = JSON.parse(xhr.responseText);
-          renderTable();
+          try {
+            products = JSON.parse(xhr.responseText);
+            renderTable();
+          } catch (e) {
+            console.error('Error parsing products:', e);
+          }
         }
+      };
+      xhr.onerror = function() {
+        console.error('Error loading products.json');
       };
       xhr.open('GET', 'products.json');
       xhr.send();
@@ -169,6 +176,8 @@
 
     function renderTable() {
       const tbody = document.getElementById('product-tbody');
+      
+      if (!tbody) return;
       
       if (products.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5">Không có sản phẩm nào</td></tr>';
@@ -275,7 +284,7 @@
       const quantity = parseInt(document.getElementById('input-quantity').value);
 
       const newProduct = {
-        id: Math.max(...products.map(p => p.id), 0) + 1,
+        id: products.length > 0 ? Math.max(...products.map(p => p.id || 0)) + 1 : 1,
         name: name,
         category: category,
         price: price,
@@ -291,19 +300,40 @@
       document.getElementById('input-quantity').value = '';
     }
 
-    document.getElementById('name-header').addEventListener('click', function() {
-      sortProducts('name');
-    });
+    function initEventListeners() {
+      const nameHeader = document.getElementById('name-header');
+      const btnAdd = document.getElementById('btn-add');
+      const inputQuantity = document.getElementById('input-quantity');
 
-    document.getElementById('btn-add').addEventListener('click', addProduct);
-
-    document.getElementById('input-quantity').addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        addProduct();
+      if (nameHeader) {
+        nameHeader.addEventListener('click', function() {
+          sortProducts('name');
+        });
       }
-    });
 
-    window.addEventListener('DOMContentLoaded', loadProducts);
+      if (btnAdd) {
+        btnAdd.addEventListener('click', addProduct);
+      }
+
+      if (inputQuantity) {
+        inputQuantity.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            addProduct();
+          }
+        });
+      }
+    }
+
+    function init() {
+      initEventListeners();
+      loadProducts();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
   </script>
 </body>
 </html>
