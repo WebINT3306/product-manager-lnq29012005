@@ -151,17 +151,17 @@
   </div>
 
   <script>
-    let products = [];
-    let sortOrder = 'asc'; 
-    let currentSortField = 'name';
+    window.products = [];
+    window.sortOrder = 'asc'; 
+    window.currentSortField = 'name';
 
-    function loadProducts() {
+    window.loadProducts = function() {
       const xhr = new XMLHttpRequest();
       xhr.onreadystatechange = function() {
         if (xhr.readyState === 4 && xhr.status === 200) {
           try {
-            products = JSON.parse(xhr.responseText);
-            renderTable();
+            window.products = JSON.parse(xhr.responseText);
+            window.renderTable();
           } catch (e) {
             console.error('Error parsing products:', e);
           }
@@ -172,20 +172,20 @@
       };
       xhr.open('GET', 'products.json');
       xhr.send();
-    }
+    };
 
-    function renderTable() {
+    window.renderTable = function() {
       const tbody = document.getElementById('product-tbody');
       
       if (!tbody) return;
       
-      if (products.length === 0) {
+      if (window.products.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5">Không có sản phẩm nào</td></tr>';
         return;
       }
 
       let html = '';
-      products.forEach((product, index) => {
+      window.products.forEach((product, index) => {
         html += `<tr>
           <td>${index + 1}</td>
           <td>${product.name}</td>
@@ -196,17 +196,17 @@
       });
       
       tbody.innerHTML = html;
-    }
+    };
 
-    function sortProducts(field) {
-      if (currentSortField !== field) {
-        sortOrder = 'asc';
-        currentSortField = field;
+    window.sortProducts = function(field) {
+      if (window.currentSortField !== field) {
+        window.sortOrder = 'asc';
+        window.currentSortField = field;
       } else {
-        sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+        window.sortOrder = window.sortOrder === 'asc' ? 'desc' : 'asc';
       }
 
-      products.sort((a, b) => {
+      window.products.sort((a, b) => {
         let aVal = a[field];
         let bVal = b[field];
 
@@ -215,18 +215,18 @@
           bVal = bVal.toLowerCase();
         }
 
-        if (sortOrder === 'asc') {
+        if (window.sortOrder === 'asc') {
           return aVal > bVal ? 1 : -1;
         } else {
           return aVal < bVal ? 1 : -1;
         }
       });
 
-      updateSortIndicator();
-      renderTable();
-    }
+      window.updateSortIndicator();
+      window.renderTable();
+    };
 
-    function updateSortIndicator() {
+    window.updateSortIndicator = function() {
       const headers = document.querySelectorAll('#product-table th');
       headers.forEach(header => {
         const indicator = header.querySelector('.sort-indicator');
@@ -236,13 +236,13 @@
       });
 
       const nameHeader = document.getElementById('name-header');
-      if (currentSortField === 'name') {
-        const icon = sortOrder === 'asc' ? '▲' : '▼';
+      if (window.currentSortField === 'name') {
+        const icon = window.sortOrder === 'asc' ? '▲' : '▼';
         nameHeader.innerHTML = `Tên sản phẩm <span class="sort-indicator">${icon}</span>`;
       }
-    }
+    };
 
-    function validateForm() {
+    window.validateForm = function() {
       let isValid = true;
       const name = document.getElementById('input-name').value.trim();
       const price = parseFloat(document.getElementById('input-price').value);
@@ -271,10 +271,10 @@
       }
 
       return isValid;
-    }
+    };
 
-    function addProduct() {
-      if (!validateForm()) {
+    window.addProduct = function() {
+      if (!window.validateForm()) {
         return;
       }
 
@@ -284,55 +284,60 @@
       const quantity = parseInt(document.getElementById('input-quantity').value);
 
       const newProduct = {
-        id: products.length > 0 ? Math.max(...products.map(p => p.id || 0)) + 1 : 1,
+        id: window.products.length > 0 ? Math.max(...window.products.map(p => p.id || 0)) + 1 : 1,
         name: name,
         category: category,
         price: price,
         quantity: quantity
       };
 
-      products.push(newProduct);
-      renderTable();
+      window.products.push(newProduct);
+      window.renderTable();
 
       document.getElementById('input-name').value = '';
       document.getElementById('input-category').value = '';
       document.getElementById('input-price').value = '';
       document.getElementById('input-quantity').value = '';
-    }
+    };
 
-    function initEventListeners() {
+    window.setupEventListeners = function() {
       const nameHeader = document.getElementById('name-header');
       const btnAdd = document.getElementById('btn-add');
       const inputQuantity = document.getElementById('input-quantity');
 
       if (nameHeader) {
-        nameHeader.addEventListener('click', function() {
-          sortProducts('name');
-        });
+        nameHeader.onclick = function(e) {
+          e.preventDefault();
+          window.sortProducts('name');
+        };
       }
 
       if (btnAdd) {
-        btnAdd.addEventListener('click', addProduct);
+        btnAdd.onclick = function(e) {
+          e.preventDefault();
+          window.addProduct();
+        };
       }
 
       if (inputQuantity) {
-        inputQuantity.addEventListener('keypress', function(e) {
+        inputQuantity.onkeypress = function(e) {
           if (e.key === 'Enter') {
-            addProduct();
+            e.preventDefault();
+            window.addProduct();
           }
-        });
+        };
       }
-    }
+    };
 
-    function init() {
-      initEventListeners();
-      loadProducts();
-    }
+    window.init = function() {
+      window.setupEventListeners();
+      window.loadProducts();
+    };
 
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init);
+      document.addEventListener('DOMContentLoaded', window.init);
     } else {
-      init();
+      window.init();
     }
   </script>
 </body>
