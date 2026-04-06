@@ -4,8 +4,306 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quản lý Sản phẩm</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    h2 {
+      font-size: 18px;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      border-bottom: 2px solid #333;
+      padding-bottom: 5px;
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    .form-group input {
+      padding: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      margin-right: 10px;
+    }
+
+    #btn-add {
+      padding: 8px 15px;
+      background: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    #btn-add:hover {
+      background: #555;
+    }
+
+    .error-message {
+      color: red;
+      font-size: 12px;
+      display: none;
+      margin-top: 3px;
+    }
+
+    #product-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    #product-table thead {
+      background: #ddd;
+    }
+
+    #product-table th {
+      padding: 10px;
+      text-align: left;
+      border: 1px solid #999;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #product-table td {
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+
+    #product-table tbody tr:nth-child(odd) {
+      background: #f9f9f9;
+    }
+
+    #product-table tbody tr:hover {
+      background: #e0e0e0;
+    }
+
+    .sort-indicator {
+      margin-left: 5px;
+    }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <h1>Quản lý Sản phẩm</h1>
 
+    <h2>Thêm Sản phẩm Mới</h2>
+    <div>
+      <div class="form-group">
+        <label for="input-name">Tên sản phẩm *</label>
+        <input type="text" id="input-name" placeholder="Nhập tên sản phẩm">
+        <div class="error-message" id="error-name"></div>
+      </div>
+      <div class="form-group">
+        <label for="input-category">Danh mục</label>
+        <input type="text" id="input-category" placeholder="Nhập danh mục">
+      </div>
+      <div class="form-group">
+        <label for="input-price">Đơn giá *</label>
+        <input type="number" id="input-price" placeholder="Nhập đơn giá" min="0">
+        <div class="error-message" id="error-price"></div>
+      </div>
+      <div class="form-group">
+        <label for="input-quantity">Số lượng *</label>
+        <input type="number" id="input-quantity" placeholder="Nhập số lượng" min="1">
+        <div class="error-message" id="error-quantity"></div>
+      </div>
+      <button id="btn-add">Thêm sản phẩm</button>
+    </div>
+
+    <h2>Danh sách Sản phẩm</h2>
+    <table id="product-table">
+      <thead>
+        <tr>
+          <th>STT</th>
+          <th id="name-header">Tên sản phẩm</th>
+          <th>Danh mục</th>
+          <th>Đơn giá</th>
+          <th>Số lượng</th>
+        </tr>
+      </thead>
+      <tbody id="product-tbody">
+        <tr>
+          <td colspan="5">Đang tải dữ liệu...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    let products = [];
+    let sortOrder = 'asc'; 
+    let currentSortField = 'name';
+
+    function loadProducts() {
+      const xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          products = JSON.parse(xhr.responseText);
+          renderTable();
+        }
+      };
+      xhr.open('GET', 'products.json');
+      xhr.send();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('product-tbody');
+      
+      if (products.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">Không có sản phẩm nào</td></tr>';
+        return;
+      }
+
+      let html = '';
+      products.forEach((product, index) => {
+        html += `<tr>
+          <td>${index + 1}</td>
+          <td>${product.name}</td>
+          <td>${product.category || 'N/A'}</td>
+          <td>${product.price}</td>
+          <td>${product.quantity}</td>
+        </tr>`;
+      });
+      
+      tbody.innerHTML = html;
+    }
+
+    function sortProducts(field) {
+      if (currentSortField !== field) {
+        sortOrder = 'asc';
+        currentSortField = field;
+      } else {
+        sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+      }
+
+      products.sort((a, b) => {
+        let aVal = a[field];
+        let bVal = b[field];
+
+        if (typeof aVal === 'string') {
+          aVal = aVal.toLowerCase();
+          bVal = bVal.toLowerCase();
+        }
+
+        if (sortOrder === 'asc') {
+          return aVal > bVal ? 1 : -1;
+        } else {
+          return aVal < bVal ? 1 : -1;
+        }
+      });
+
+      updateSortIndicator();
+      renderTable();
+    }
+
+    function updateSortIndicator() {
+      const headers = document.querySelectorAll('#product-table th');
+      headers.forEach(header => {
+        const indicator = header.querySelector('.sort-indicator');
+        if (indicator) {
+          indicator.remove();
+        }
+      });
+
+      const nameHeader = document.getElementById('name-header');
+      if (currentSortField === 'name') {
+        const icon = sortOrder === 'asc' ? '▲' : '▼';
+        nameHeader.innerHTML = `Tên sản phẩm <span class="sort-indicator">${icon}</span>`;
+      }
+    }
+
+    function validateForm() {
+      let isValid = true;
+      const name = document.getElementById('input-name').value.trim();
+      const price = parseFloat(document.getElementById('input-price').value);
+      const quantity = parseInt(document.getElementById('input-quantity').value);
+
+      document.getElementById('error-name').style.display = 'none';
+      document.getElementById('error-price').style.display = 'none';
+      document.getElementById('error-quantity').style.display = 'none';
+
+      if (name === '' || name.length < 3) {
+        document.getElementById('error-name').textContent = 'Tên sản phẩm không được rỗng và ít nhất 3 ký tự';
+        document.getElementById('error-name').style.display = 'block';
+        isValid = false;
+      }
+
+      if (isNaN(price) || price <= 0) {
+        document.getElementById('error-price').textContent = 'Đơn giá phải là số dương';
+        document.getElementById('error-price').style.display = 'block';
+        isValid = false;
+      }
+
+      if (isNaN(quantity) || quantity < 1 || !Number.isInteger(quantity)) {
+        document.getElementById('error-quantity').textContent = 'Số lượng phải là số nguyên ≥ 1';
+        document.getElementById('error-quantity').style.display = 'block';
+        isValid = false;
+      }
+
+      return isValid;
+    }
+
+    function addProduct() {
+      if (!validateForm()) {
+        return;
+      }
+
+      const name = document.getElementById('input-name').value.trim();
+      const category = document.getElementById('input-category').value.trim() || 'Khác';
+      const price = parseFloat(document.getElementById('input-price').value);
+      const quantity = parseInt(document.getElementById('input-quantity').value);
+
+      const newProduct = {
+        id: Math.max(...products.map(p => p.id), 0) + 1,
+        name: name,
+        category: category,
+        price: price,
+        quantity: quantity
+      };
+
+      products.push(newProduct);
+      renderTable();
+
+      document.getElementById('input-name').value = '';
+      document.getElementById('input-category').value = '';
+      document.getElementById('input-price').value = '';
+      document.getElementById('input-quantity').value = '';
+    }
+
+    document.getElementById('name-header').addEventListener('click', function() {
+      sortProducts('name');
+    });
+
+    document.getElementById('btn-add').addEventListener('click', addProduct);
+
+    document.getElementById('input-quantity').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        addProduct();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', loadProducts);
+  </script>
 </body>
 </html>
